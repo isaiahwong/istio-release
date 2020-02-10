@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    istio-injection: enabled
+  name: default
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: istio-sidecar-injector
+data:
+  config: |-
+    policy: enabled
+    neverInjectSelector:
+      - matchExpressions:
+        - {key: api.gateway.io, operator: Exists}
