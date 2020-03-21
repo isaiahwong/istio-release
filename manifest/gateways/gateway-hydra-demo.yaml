@@ -1,13 +1,15 @@
+# For Rewrite issues
+# https://github.com/istio/istio/issues/8076
 apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
-  name: ingress-gateway-configuration
+  name: ingress-hydra
 spec:
   selector:
     istio: ingressgateway # use Istio default gateway implementation
   servers:
   - port:
-      number: 80
+      number: 9000
       name: http
       protocol: HTTP
     hosts:
@@ -18,15 +20,22 @@ spec:
 kind: VirtualService
 apiVersion: networking.istio.io/v1alpha3
 metadata:
-  name: gateway-service-rule
+  name: hydra-service-rule
   namespace: default
 spec:
   hosts:      # which incoming host are we applying the proxy rules to???
     - "*"
   gateways:
-    - ingress-gateway-configuration
+    - ingress-hydra
   http:
-  - headers:
+  - match: 
+    - uri:
+        prefix: /issuer/
+    - uri:
+        prefix: /issuer
+    rewrite:
+      uri: "/"
+    headers:
       response:
         remove:
           - "x-envoy-upstream-service-time"
@@ -34,8 +43,26 @@ spec:
     route:
     - destination:
         port:
-          number: 5000
-        host: gateway-service.default.svc.cluster.local
+          number: 9000
+        host: hydra-service.default.svc.cluster.local
+
+  - match: 
+    - uri:
+        prefix: /admin/
+    - uri:
+        prefix: /admin
+    rewrite:
+      uri: "/"
+    headers:
+      response:
+        remove:
+          - "x-envoy-upstream-service-time"
+          - "server"
+    route:
+    - destination:
+        port:
+          number: 9001
+        host: hydra-service.default.svc.cluster.local
 ---
 apiVersion: networking.istio.io/v1alpha3
 kind: EnvoyFilter
