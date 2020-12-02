@@ -1,20 +1,19 @@
-apiVersion: install.istio.io/v1alpha2
-kind: IstioControlPlane
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
 spec:
-  trafficManagement:
-    components:
-      pilot:
-        k8s:
-          resources:
-            requests:
-              cpu: 100m # override from default 500m
-              memory: 1024Mi # ... default 2048Mi
-          hpaSpec:
-            maxReplicas: 1 # ... default 5
-            minReplicas: 1  # ... default 1
-          nodeSelector:
-            master: "true"
-          tolerations:
+  components:
+    pilot:
+      k8s:
+        resources:
+          requests:
+            cpu: 400m # override from default 500m
+            memory: 1024Mi # ... default 2048Mi
+        hpaSpec:
+          maxReplicas: 10 # ... default 5
+          minReplicas: 2 # ... default 1
+        nodeSelector:
+          master: 'true'
+        tolerations:
           - key: dedicated
             operator: Exists
             effect: NoSchedule

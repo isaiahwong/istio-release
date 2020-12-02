@@ -1,44 +1,73 @@
 # This will enforce that ONLY traffic that is TLS is allowed between proxies
-apiVersion: "authentication.istio.io/v1alpha1"
-kind: "MeshPolicy"
+apiVersion: "security.istio.io/v1beta1"
+kind: "PeerAuthentication"
 metadata:
   name: "default"
+  namespace: "default"
 spec:
-  peers:
-  - mtls: {}
+  mtls:
+    mode: STRICT
 ---
-# Ignore Gateway Service Webhook
-apiVersion: "authentication.istio.io/v1alpha1"
-kind: "Policy"
-metadata:
-  name: "gateway-service-mutating"
-spec:
-  peers:
-  - mtls: 
-      mode: PERMISSIVE
-  targets:
-  - name: gateway-service
-    ports:
-    - number: 443
-      
+# # Switch mtls between proxies
+# apiVersion: "networking.istio.io/v1alpha3"
+# kind: "DestinationRule"
+# metadata:
+#   name: "default"
+# spec:
+#   host: "*.local" # Every SINGLE SERVICE 
+#   trafficPolicy:
+#     tls:
+#       mode: ISTIO_MUTUAL
 ---
-# Switch mtls between proxies
-apiVersion: "networking.istio.io/v1alpha3"
-kind: "DestinationRule"
+# Hydra Oauth2 
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
 metadata:
-  name: "default"
-  namespace: "istio-system"
+  name: hydra-service
 spec:
-  host: "*.local" # Every SINGLE SERVICE 
-  trafficPolicy:
-    tls:
-      mode: ISTIO_MUTUAL
+  selector:
+    matchLabels:
+      service: hydra
+  mtls:
+    mode: PERMISSIVE
+  # portLevelMtls:
+  #   443:
+  #     mode: PERMISSIVE
+---
+# Gateway Service   
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: gateway-service
+spec:
+  selector:
+    matchLabels:
+      app: gateway
+  mtls:
+    mode: PERMISSIVE
+  # portLevelMtls:
+  #   443:
+  #     mode: PERMISSIVE
+---
+# Gateway Service   
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: oauth-service
+spec:
+  selector:
+    matchLabels:
+      app: oauth-front
+  mtls:
+    mode: PERMISSIVE
+  # portLevelMtls:
+  #   443:
+  #     mode: PERMISSIVE
 ---
 apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
 metadata:
   name: disable-mtls-to-k8s
-  namespace: istio-system
 spec:
   host: kubernetes.default.svc.cluster.local
   trafficPolicy:
